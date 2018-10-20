@@ -2,12 +2,12 @@
     <div class="row">
         <div [ngClass]="{'col-main-opened': !collapsed, 'col-main-collapsed': collapsed }">
             <div class="filters">
-                <div class="wrap-search">
+                <div class="wrap-search mr-2">
                     <input type="text" class="search" placeholder="Search..."
                         [(ngModel)]="search" (keyup)="searchChanged()" />
                     <mdi-icon name="magnify"></mdi-icon>
                 </div>
-                <div class="btn-group">
+                <div class="btn-group mr-2">
                     <button class="btn btn-light btn-lighter"
                         (click)="size = 24"
                         [ngClass]="{ 'active': size == 24 }">24</button>
@@ -18,17 +18,25 @@
                         (click)="size = 48"
                         [ngClass]="{ 'active': size == 48 }">48</button>
                 </div>
-                <div ngbDropdown class="d-inline-block">
+                <div ngbDropdown class="d-inline-block mr-2">
                     <button class="btn btn-light btn-lighter" id="dropdownBasic1" ngbDropdownToggle>Latest ({{iconsCache.length}})</button>
                     <div ngbDropdownMenu aria-labelledby="dropdownBasic1">
                         <button class="dropdown-item">v2.7.94</button>
                         <button class="dropdown-item">...</button>
                     </div>
                 </div>
-                <button class="btn btn-light btn-lighter"
+                <button class="btn btn-light btn-lighter mr-2"
                     (click)="isCheatsheet = !isCheatsheet">
                     Cheatsheet
                 </button>
+                <div class="btn-group">
+                    <button class="btn btn-light btn-lighter"
+                        (click)="switchPackage(PackageType.MaterialDesignIcons)"
+                        [ngClass]="{ 'active': packageId == PackageType.MaterialDesignIcons }">Regular</button>
+                    <button class="btn btn-light btn-lighter"
+                        (click)="switchPackage(PackageType.MaterialDesignIconsLight)"
+                        [ngClass]="{ 'active': packageId == PackageType.MaterialDesignIconsLight }">Light</button>
+                </div>
             </div>
             <div class="card p-2 loading" *ngIf="isIconsLoading">
                 <svg class="loading-spin" viewBox="0 0 24 24">
@@ -37,7 +45,7 @@
             </div>
             <div #content class="card p-2" *ngIf="!isIconsLoading" style="display: block;" [ngClass]="['size-' + size]">
                 <a *ngFor="let icon of icons" [ngbTooltip]="icon.name" [placement]="'bottom'" class="icon"
-                    [routerLink]="'/icon/' + icon.name">
+                    [routerLink]="'/icon/' + icon.name + (packageId === PackageType.MaterialDesignIcons ? '' : '/light')">
                     <svg viewBox="0 0 24 24">
                         <path [attr.d]="icon.data" />
                     </svg>
@@ -67,7 +75,7 @@
                 </div>
             </div>
             <div #sidebarTags class="list-group">
-                <a [routerLink]="'/icons/' + tag.url"
+                <a [routerLink]="'/icons/' + tag.url + (packageId === PackageType.MaterialDesignIcons ? '' : '/light')"
                     *ngFor="let tag of tags"
                     class="list-group-item d-flex justify-content-between align-items-center"
                     placement="left"

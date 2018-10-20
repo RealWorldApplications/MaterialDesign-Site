@@ -1,5 +1,5 @@
-<blockquote class="alert alert-info">
-  icon:information-outline Please read the <a href="/guide/webfont-alternatives">Webfont Alternatives Guide</a> before considering if the webfont is right for your project.
+<blockquote class="alert alert-warning">
+  icon:information-outline Due to size, the <b>webfont may harm app/web performance.</b> Please read the <a href="/guide/webfont-alternatives"><u>Webfont Alternatives Guide</u></a> to determine if it is right for your project.
 </blockquote>
 
 # Webfont - Getting Started
@@ -14,7 +14,7 @@ bower install mdi
 ```
 
 ```
-https://cdn.materialdesignicons.com/{{version}}/css/materialdesignicons.css
+https://cdn.materialdesignicons.com/{{version}}/css/materialdesignicons.min.css
 ```
 
 ## Basic Example

@@ -1,7 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { LoginService } from 'app/admin/services/login.service';
-import { TagService } from 'app/shared/tag.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Package } from 'app/shared/models/package.model';
 import { Icon } from 'app/shared/models/icon.model';
 import { IconService } from 'app/shared/icon.service';
@@ -17,31 +16,38 @@ import { IconService } from 'app/shared/icon.service';
 })
 export class AdminIconsPageComponent {
 
-  constructor (
+  constructor(
     private loginService: LoginService,
     private iconService: IconService,
+    private route: ActivatedRoute,
     private router: Router
   ) {
     this.packages.push(new Package("38EF63D0-4744-11E4-B3CF-842B2B6CFE1B", "Material Design Icons"));
     this.packages.push(new Package("531A9B44-1962-11E5-89CC-842B2B6CFE1B", "Material Design Icons Light"));
-    this.selectedPackage = this.packages[0];
+    const pack = this.route.snapshot.data['package'];
+    if (pack) {
+      this.selectedPackage = this.packages.find(p => p.id === pack.id);
+    } else {
+      this.selectedPackage = this.packages[0];
+    }
   }
 
   public packages: Package[] = [];
   public selectedPackage: Package = null;
   public icons: Icon[];
   public selectedIcon: Icon = null;
+  public icon: Icon = null;
   public editIcon: Icon = null;
 
-  async ngOnInit () {
+  async ngOnInit() {
     await this.loginService.isAuthed();
   }
 
-  goBack () {
+  goBack() {
     this.router.navigateByUrl('/admin/index')
   }
 
-  async logout () {
+  async logout() {
     await this.loginService.logout();
   }
 
@@ -50,14 +56,19 @@ export class AdminIconsPageComponent {
     // this.icons = await this.iconService.getAdminIcons(this.selectedPackage.id);
     // this.selectedIcon = this.icons[0];
   }
-  
-  public selectIcon () {
-    this.editIcon = new Icon().from(this.selectedIcon);
+
+  async selectIcon() {
+    this.icon = await this.iconService.getAdminIcon(this.selectedIcon.id);
+    this.editIcon = new Icon().from(this.icon);
   }
 
-  addIcon () {
+  addIcon() {
     this.editIcon = null;
   }
 
+  async updateDescription() {
+    this.icon = await this.iconService.updateDescription(this.editIcon);
+    this.editIcon = new Icon().from(this.icon);
+  }
 
 }

@@ -69,8 +69,12 @@
             <div class="form-group form-group-edit">
               <label>Description</label>
               <textarea class="form-control" name="description" rows="5"
-                [(value)]="editIcon.description"></textarea>
-              <div><button class="btn btn-primary">Update</button></div>
+                [(ngModel)]="editIcon.description"></textarea>
+              <div>
+                <button class="btn btn-primary"
+                  [disabled]="icon.description == '' || icon.description == editIcon.description"
+                  (click)="updateDescription()">Update</button>
+              </div>
             </div>
           </div>
         </div>

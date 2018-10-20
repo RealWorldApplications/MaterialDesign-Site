@@ -14,100 +14,23 @@ Public endpoints are visible to everyone using the website.
 - Cached results (up to 5 minutes)
 - Objects may not contain all properties (ex: user objects)
 
-### Get List of Packages
+import:/content/api-get-package.md
 
-```text
-GET api/packages
-```
+import:/content/api-get-package-list.md
 
-```text
-[
-    // Reference api/package/{packageId}
-]
-```
+import:/content/api-get-font-versions-by-package.md
 
-### Get Icon List in Package
+import:/content/api-get-icon.md
 
-```text
-GET api/package/{packageId}
-```
+import:/content/api-get-icon-by-name.md
 
-```json
-{
-    "id": "38EF63D0-4744-11E4-B3CF-842B2B6CFE1B",
-    "name": "Material Design Icons",
-    "width": 24,
-    "height": 24,
-    "versions": [
-        { "id": "", "minor": 1, "major": 7, "patch": 12, "count": 42 }
-    ],
-    "icons": [
-        
-    ]
-}
-```
+import:/content/api-get-tags.md
 
-There are also various ways to filter the icon results by appending various parameters.
+import:/content/api-get-users.md
 
-```text
-?search=account
-?name=account,account-plus
-?uuid=
-?author=uuid
-?author=community
-```
+import:/content/api-get-user.md
 
-#### Get Package Version List
-
-```text
-GET api/package/{packageId}/version
-```
-
-```json
-[
-    { "id": "", "minor": 1, "major": 7, "patch": 22, "count": 42 }
-]
-```
-
-#### Get Icon from Package by Name
-
-Icon names are unique across a package.
-
-```text
-GET api/package/{packageId}/{iconName}
-```
-
-```json
-{
-    "id": "9B295DCA-8352-407E-84F1-34890975D010",
-    "name": "format-align-center",
-    "description": "Align Center",
-    "data": "M3,3H21V5H3V3M7,7H17V9H7V7M3,11H21V13H3V11M7,15H17V17H7V15M3,19H21V21H3V19Z",
-    "date": "2015-04-23T18:25:43.511Z",
-    "package": {
-        "id": "38EF63D0-4744-11E4-B3CF-842B2B6CFE1B",
-        "name": "Material Design Icons",
-        "version": {
-            "major": 1,
-            "minor": 8,
-            "patch": 36
-        },
-        "width": 24,
-        "height": 24
-    },
-    "user": {
-        "name": "Google",
-        "twitter": "Google"
-    },
-    "comments": [],
-    "tags":[
-        {
-            "id":"430DA3F8-27C4-4F76-A7B7-A430E1C13AD2",
-            "text":"format"
-        }
-    ]
-}
-```
+import:/content/api-get-styles.md
 
 ### Download Icon
 
@@ -155,45 +78,6 @@ Response: `*.png`, `*.jpg`, `*.svg`, `*.xaml`, `*.xml` or `*.zip`
 
 > Note: If an array is sent the results will be returned in a `zip`. `path` is ignored for object responses.
 
-### Get Contributors
-
-```text
-GET api/user
-```
-
-Response: [User](/contribute/site/api/data#user)[]
-
-### Get Contributor
-
-```text
-GET api/user/{userId}
-```
-
-Response: [User](/contribute/site/api/data#user)
-
-### Get Tags
-
-A list of tags used to group icons in the system. If count is 0 the item will not be returned.
-
-```text
-GET api/tag
-```
-
-```json
-[
-    {
-        "id": "{uuid}",
-        "text": "Medical",
-        "count": 42
-    }
-]
-```
-
-### Get Related Icons
-
-```text
-GET api/icon/{iconId}/related
-```
 
 ## Private Endpoints
 

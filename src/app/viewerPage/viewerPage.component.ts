@@ -1,5 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute, ActivatedRouteSnapshot, RouterStateSnapshot, Event, NavigationEnd } from '@angular/router';
+import * as YAML from 'js-yaml';
 import { ViewerService } from './viewerPage.service';
 import { IconService } from './../shared/icon.service';
 
@@ -10,7 +11,7 @@ import { NgbTooltipWindow } from "@ng-bootstrap/ng-bootstrap/tooltip/tooltip";
 import { MarkdownReplace } from "app/shared/markdown/markdown.component";
 
 declare var Remarkable: any;
-declare var hljs: any;
+declare let window: any;
 
 @Component({
   selector: 'mdi-viewer',
@@ -39,7 +40,8 @@ export class ViewerPageComponent {
   constructor(public router: Router,
     public route: ActivatedRoute,
     private viewerService: ViewerService,
-    private iconService: IconService) {
+    private iconService: IconService
+  ) {
     this.url = route.snapshot.url.join('/');
     this.sidebar = new Sidebar(this.url, [
       new SidebarItem("home", "Loading...", "", "", "", [])
@@ -68,6 +70,39 @@ export class ViewerPageComponent {
         }
       }
     });
+
+    window.yamlToggle = (e) => {
+      const button = e.target;
+      const parent = button.parentNode;
+      const ul = parent.querySelector('ul');
+      if (ul.className === 'd-none') {
+        ul.className = '';
+        button.innerText = '-';
+      } else {
+        ul.className = 'd-none';
+        button.innerText = '+';
+      }
+    }
+
+    window.yamlTab = (e, tab) => {
+      const button = e.target;
+      const parent = button.parentNode;
+      const buttons = parent.querySelectorAll('button');
+      buttons.forEach(b => b.className = '');
+      button.className = 'active';
+      const jsonTab = button.parentNode.nextElementSibling;
+      const yamlTab = button.parentNode.parentNode.nextElementSibling;
+      switch (tab) {
+        case 'json':
+          jsonTab.className = 'yaml-preview yaml-show';
+          yamlTab.className = 'language-yaml yaml-hide';
+          break;
+        case 'yaml':
+          jsonTab.className = 'yaml-preview yaml-hide';
+          yamlTab.className = 'language-yaml yaml-show';
+          break;
+      }
+    }
   }
 
   icons: string[] = [];
@@ -142,9 +177,104 @@ export class ViewerPageComponent {
     });
     let c: string[] = await Promise.all(imports.map(async (url, i) => await this.viewerService.getFile(url)));
     imports.forEach((url, i) => {
-      markdown = markdown.replace('import:' + url, c[i]);
+      markdown = markdown.replace(`import:${url}`, c[i]);
     });
     return markdown;
+  }
+
+  async processRefs(markdown) {
+    let imports: any[] = [];
+    let unique = 0;
+    markdown = markdown.replace(/([ ]*)\$ref: '#([^']+)'/g, (m, spaces, file) => {
+      unique++;
+      imports.push({ unique, spaces, file });
+      console.log(`${m}-${unique}`);
+      return `${m}-${unique}`;
+    });
+    let c: string[] = await Promise.all(
+      imports.map(async (obj) => await this.viewerService.getFile(`/content/${obj.file}.yaml`))
+    );
+    imports.forEach((obj, i) => {
+      const lines = c[i].split(/\r?\n/);
+      const content = lines.map((line, i) => {
+        return `${i === 0 ? '' : obj.spaces}${line}`
+      }).join("\n");
+      markdown = markdown.replace(`$ref: '#${obj.file}'-${obj.unique}`, content);
+    });
+    return markdown;
+  }
+
+  processYaml(m, content) {
+    let error = ''
+    try {
+      const json = YAML.load(content);
+      if (json.type) {
+        // console.log(json);
+        const html = [];
+        html.push('<div class="yaml">');
+        html.push('<div class="yaml-toolbar">');
+        html.push(`<button onclick="yamlTab(event, 'json')" class="yaml-click">JSON Preview</button>`);
+        html.push(`<button onclick="yamlTab(event, 'yaml')" class="">YAML</button>`);
+        html.push('</div>');
+        html.push('<div class="yaml-preview">');
+        html.push('<ul>');
+        this.processYamlRecursive(html, json);
+        html.push('</ul>');
+        html.push('</div>');
+        html.push('</div>');
+        html.push("\r\n\r\n");
+        html.push(m);
+        return html.join('');
+      }
+    } catch (e) {
+      error = [
+        '<div class="alert alert-danger">',
+        '<strong>YAML Error:</strong><br/>',
+        e.message,
+        '</div>',
+        ''
+      ].join("") + "\r\n\r\n";
+    }
+    return `${error}${m}`;
+  }
+
+  processYamlRecursive(html, partial, part = '') {
+    if (partial.$ref) {
+      html.push(`<li><code class="yaml-prop">`);
+      html.push(`<code class="yaml-key">${part}</code>: <code class="yaml-error">$ref: '${partial.$ref}'</code> `);
+      html.push(`<code class="yaml-example">Too many nested levels</code>`);
+      html.push(`</code></li>`);
+    } else if (partial.type) {
+      switch (partial.type) {
+        case 'object':
+          const oName = part === '' ? '' : `<code class="yaml-key">${part}</code>: `;
+          html.push(`<li><button onclick="yamlToggle(event)">+</button><code>${oName}{</code><ul class="d-none">`);
+          for (let part of Object.keys(partial.properties)) {
+            this.processYamlRecursive(html, partial.properties[part], part);
+          }
+          html.push('</ul><code class="yaml-end">}</code></li>');
+        break;
+        case 'array':
+          const aName = part === '' ? '' : `<code class="yaml-key">${part}</code>: `;
+          html.push(`<li><button onclick="yamlToggle(event)">+</button><code>${aName}[</code><ul class="d-none">`);
+          this.processYamlRecursive(html, partial.items);
+          html.push('</ul><code class="yaml-end">]</code></li>');
+        break;
+        case 'string':
+        case 'integer':
+          html.push(`<li><code class="yaml-prop">`);
+          html.push(`<code class="yaml-key">${part}</code>: <code class="yaml-type">${partial.type}</code>`);
+          if (partial.example) {
+            html.push(` <code class="yaml-example">${partial.example}</code>`);
+          }
+          html.push(`</code></li>`);
+          break;
+        default:
+          html.push(`<li><code class="yaml-prop"><code class="yaml-key">${part}</code>: <code class="yaml-error">Error: Invalid type &quot;${partial.type}&quot;.</code></code></li>`);
+      }
+    } else {
+      html.push(`<li><code class="yaml-prop"><code class="yaml-key">${part}</code>: <code class="yaml-error">Error: No type found.</code></code></li>`);
+    }
   }
 
   async loadContent(data) {
@@ -155,16 +285,24 @@ export class ViewerPageComponent {
     // Render Markdown
     this.viewerService.getMarkdownFileHtml(data.file)
       .subscribe(async markdown => {
-        // Import
+        // Import - 2 deep
         markdown = await this.processImports(markdown);
-        // Nested Imports
         markdown = await this.processImports(markdown);
+        // Process Refs - 3 deep
+        markdown = await this.processRefs(markdown);
+        markdown = await this.processRefs(markdown);
+        markdown = await this.processRefs(markdown);
+        // YAML Swagger Docs
+        markdown = markdown.replace(
+          /```yaml\r?\n([\s\S]*?)\r?\n```/g,
+          (m, content) => this.processYaml(m, content)
+        );
         // Tabs
         markdown = markdown.replace(/tabs:(.*)/g, (m, m1) => {
           const tab = `<div class="card mb-3">
             <div class="card-header">
               <ul class="nav nav-tabs card-header-tabs">`;
-          const title = m1 === '' ? '' :  `<li class="nav-item-title">${m1}</li>`;
+          const title = m1 === '' ? '' : `<li class="nav-item-title">${m1}</li>`;
           return `${tab}${title}`;
         });
         markdown = markdown.replace(/tab:[^ ]+ .+(\r?\ntab:[^ ]+ .+)+/g, (m) => {
@@ -186,7 +324,7 @@ export class ViewerPageComponent {
         });
         this.markdown = markdown;
       },
-      e => this.errorMessage = e);
+        e => this.errorMessage = e);
     // Load stylesheets
     if (data.stylesheets) {
       data.stylesheets.map(s => this.addCss(s));
@@ -215,12 +353,17 @@ export class ViewerPageComponent {
         };
       });
     });
+    // Close Yaml Tabs
+    const btns = document.querySelectorAll('.yaml-click') as any;
+    for (var e of btns) {
+      window.yamlTab({ target: e }, 'json');
+    }
   }
 
   addCss(fileName) {
-    for(var i = 0; i < document.styleSheets.length; i++){
-      if(document.styleSheets[i].href == fileName){
-          return;
+    for (var i = 0; i < document.styleSheets.length; i++) {
+      if (document.styleSheets[i].href == fileName) {
+        return;
       }
     }
     var head = document.head,
